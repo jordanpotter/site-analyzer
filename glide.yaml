@@ -1,0 +1,6 @@
+package: github.com/jordanpotter/site-analyzer
+import:
+- package: github.com/pkg/errors
+  version: ^0.8.0
+- package: github.com/fedesog/webdriver
+  version: 6f14c445a22cbbd7a136733ac3bc0e91b97cd97a
