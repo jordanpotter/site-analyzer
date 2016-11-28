@@ -25,6 +25,7 @@ func main() {
 	config := browser.Config{
 		URL:                 url,
 		ChromedriverPath:    chromedriverPath,
+		DisplayNum:          0,
 		PostNavigationSleep: 1 * time.Second,
 	}
 	analysis, err := browser.Analyze(config)

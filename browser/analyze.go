@@ -1,6 +1,7 @@
 package browser
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/fedesog/webdriver"
@@ -10,6 +11,7 @@ import (
 type Config struct {
 	URL                 string
 	ChromedriverPath    string
+	DisplayNum          int
 	PostNavigationSleep time.Duration
 }
 
@@ -25,7 +27,7 @@ func Analyze(config Config) (*Analysis, error) {
 		return nil, errors.Wrap(err, "failed to start chromedriver")
 	}
 
-	session, err := chromeDriver.NewSession(desiredCapabilities(), requiredCapabilities())
+	session, err := chromeDriver.NewSession(desiredCapabilities(config.DisplayNum), requiredCapabilities())
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create a new session")
 	}
@@ -60,13 +62,17 @@ func Analyze(config Config) (*Analysis, error) {
 	}, nil
 }
 
-func desiredCapabilities() webdriver.Capabilities {
+func desiredCapabilities(displayNum int) webdriver.Capabilities {
 	return webdriver.Capabilities{
 		"loggingPrefs": map[string]interface{}{
 			consoleLogName:     webdriver.LogAll,
 			performanceLogName: webdriver.LogAll,
 		},
 		"chromeOptions": map[string]interface{}{
+			"args": []string{
+				"start-maximized",
+				fmt.Sprintf("display=:%d", displayNum),
+			},
 			"perfLoggingPrefs": map[string]interface{}{
 				"enableNetwork": true,
 				"enablePage":    true,
