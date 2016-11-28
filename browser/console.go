@@ -15,8 +15,8 @@ type ConsoleLogEntry struct {
 	Time    time.Time
 }
 
-func consoleLog(session *webdriver.Session) ([]ConsoleLogEntry, error) {
-	logEntries, err := session.Log(consoleLogName)
+func (b *Browser) consoleLog() ([]ConsoleLogEntry, error) {
+	logEntries, err := b.session.Log(consoleLogName)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to retrieve console log")
 	}

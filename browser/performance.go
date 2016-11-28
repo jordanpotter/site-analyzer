@@ -15,8 +15,8 @@ type PerformanceLogEntry struct {
 	Time    time.Time
 }
 
-func performanceLog(session *webdriver.Session) ([]PerformanceLogEntry, error) {
-	logEntries, err := session.Log(performanceLogName)
+func (b *Browser) performanceLog() ([]PerformanceLogEntry, error) {
+	logEntries, err := b.session.Log(performanceLogName)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to retrieve performance log")
 	}

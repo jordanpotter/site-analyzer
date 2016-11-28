@@ -1,86 +1,41 @@
 package browser
 
 import (
-	"fmt"
 	"time"
 
-	"github.com/fedesog/webdriver"
 	"github.com/pkg/errors"
 )
 
-type Config struct {
-	URL                 string
-	ChromedriverPath    string
-	DisplayNum          int
-	PostNavigationSleep time.Duration
-}
-
 type Analysis struct {
+	PageLoadTime   time.Duration
 	ConsoleLog     []ConsoleLogEntry
 	PerformanceLog []PerformanceLogEntry
 }
 
-func Analyze(config Config) (*Analysis, error) {
-	chromeDriver := webdriver.NewChromeDriver(config.ChromedriverPath)
+func (b *Browser) Analyze(url string, postPageLoadSleep time.Duration) (*Analysis, error) {
+	start := time.Now()
 
-	if err := chromeDriver.Start(); err != nil {
-		return nil, errors.Wrap(err, "failed to start chromedriver")
+	if err := b.session.Url(url); err != nil {
+		return nil, errors.Wrapf(err, "failed to navigate to %q", url)
 	}
 
-	session, err := chromeDriver.NewSession(desiredCapabilities(config.DisplayNum), requiredCapabilities())
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create a new session")
-	}
+	pageLoadTime := time.Since(start)
 
-	if err = session.Url(config.URL); err != nil {
-		return nil, errors.Wrapf(err, "failed to navigate to %q", config.URL)
-	}
+	time.Sleep(postPageLoadSleep)
 
-	time.Sleep(config.PostNavigationSleep)
-
-	consoleLog, err := consoleLog(session)
+	consoleLog, err := b.consoleLog()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get console log")
 	}
 
-	performanceLog, err := performanceLog(session)
+	performanceLog, err := b.performanceLog()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get performance log")
 	}
 
-	if err = session.Delete(); err != nil {
-		return nil, errors.Wrap(err, "failed to delete session")
-	}
-
-	if err = chromeDriver.Stop(); err != nil {
-		return nil, errors.Wrap(err, "failed to stop chromedriver")
-	}
-
 	return &Analysis{
+		PageLoadTime:   pageLoadTime,
 		ConsoleLog:     consoleLog,
 		PerformanceLog: performanceLog,
 	}, nil
-}
-
-func desiredCapabilities(displayNum int) webdriver.Capabilities {
-	return webdriver.Capabilities{
-		"loggingPrefs": map[string]interface{}{
-			consoleLogName:     webdriver.LogAll,
-			performanceLogName: webdriver.LogAll,
-		},
-		"chromeOptions": map[string]interface{}{
-			"args": []string{
-				"start-maximized",
-				fmt.Sprintf("display=:%d", displayNum),
-			},
-			"perfLoggingPrefs": map[string]interface{}{
-				"enableNetwork": true,
-				"enablePage":    true,
-			},
-		},
-	}
-}
-
-func requiredCapabilities() webdriver.Capabilities {
-	return webdriver.Capabilities{}
 }
