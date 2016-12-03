@@ -4,16 +4,22 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 
 	"github.com/pkg/errors"
+)
+
+const (
+	videoName = "output.mp4"
 )
 
 type Capture struct {
 	cmd *exec.Cmd
 }
 
-func StartCapture(displayNum, width, height, fps int, path string) (*Capture, error) {
+func StartCapture(displayNum, width, height, fps int, dir string) (*Capture, error) {
+	path := filepath.Join(dir, videoName)
 	cmd := exec.Command("ffmpeg",
 		"-f", "x11grab",
 		"-video_size", fmt.Sprintf("%dx%d", width, height),
