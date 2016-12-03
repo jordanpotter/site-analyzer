@@ -6,31 +6,43 @@ import (
 	"time"
 
 	"github.com/jordanpotter/site-analyzer/browser"
+	"github.com/jordanpotter/site-analyzer/display"
 	"github.com/jordanpotter/site-analyzer/video"
 )
 
 var (
 	url              string
+	width            int
+	height           int
+	fps              int
 	chromeDriverPath string
-	videoFPS         int
 )
 
 func init() {
 	flag.StringVar(&url, "url", "", "url of the website")
+	flag.IntVar(&width, "width", 1600, "width of the captured video")
+	flag.IntVar(&height, "height", 1200, "height of the captured video")
+	flag.IntVar(&fps, "fps", 20, "fps of the captured video")
 	flag.StringVar(&chromeDriverPath, "chromedriver", "/usr/bin/chromedriver", "path to chromedriver binary")
-	flag.IntVar(&videoFPS, "fps", 20, "fps of the captured video")
 	flag.Parse()
 }
 
 func main() {
 	verifyFlags()
 
-	b, err := browser.New(chromeDriverPath, 0)
+	d, err := display.New(width, height)
+	if err != nil {
+		log.Fatalln("Unexpected error while creating display: %v", err)
+	}
+
+	time.Sleep(100 * time.Millisecond)
+
+	b, err := browser.New(chromeDriverPath, d.Num)
 	if err != nil {
 		log.Fatalln("Unexpected error while creating browser: %v", err)
 	}
 
-	capture, err := video.StartCapture(0, 1600, 1200, videoFPS, "output.mp4")
+	capture, err := video.StartCapture(d.Num, width, height, fps, "output.mp4")
 	if err != nil {
 		log.Fatalln("Unexpected error while starting video capture: %v", err)
 	}
@@ -44,8 +56,14 @@ func main() {
 		log.Fatalln("Unexpected error while stopping video capture: %v", err)
 	}
 
+	time.Sleep(100 * time.Millisecond)
+
 	if err = b.Kill(); err != nil {
 		log.Fatalln("Unexpected error while killing browser: %v", err)
+	}
+
+	if err = d.Kill(); err != nil {
+		log.Fatalln("Unexpected error while killing display: %v", err)
 	}
 
 	log.Printf("Page took %f seconds to load", analysis.PageLoadTime.Seconds())
@@ -56,9 +74,13 @@ func main() {
 func verifyFlags() {
 	if url == "" {
 		log.Fatalln("Must specify url")
+	} else if width <= 0 {
+		log.Fatalf("Invalid video width %d", width)
+	} else if height <= 0 {
+		log.Fatalf("Invalid video height %d", height)
+	} else if fps <= 0 {
+		log.Fatalf("Invalid video fps %d", fps)
 	} else if chromeDriverPath == "" {
 		log.Fatalln("Must specify chromedriver path")
-	} else if videoFPS <= 0 {
-		log.Fatalf("Invalid video fps %d", videoFPS)
 	}
 }
