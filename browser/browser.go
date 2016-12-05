@@ -47,6 +47,7 @@ func desiredCapabilities(displayNum int) webdriver.Capabilities {
 		},
 		"chromeOptions": map[string]interface{}{
 			"args": []string{
+				"no-sandbox",
 				"start-maximized",
 				fmt.Sprintf("display=:%d", displayNum),
 			},
