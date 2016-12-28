@@ -28,8 +28,13 @@ func New(chromeDriverPath string, width, height, displayNum int) (*Browser, erro
 		return nil, errors.Wrap(err, "failed to get window handle")
 	}
 
-	window.SetPosition(webdriver.Position{X: 0, Y: 0})
-	window.SetSize(webdriver.Size{Width: width, Height: height})
+	if err := window.SetPosition(webdriver.Position{X: 0, Y: 0}); err != nil {
+		return nil, errors.Wrap(err, "failed to set window position")
+	}
+
+	if err := window.SetSize(webdriver.Size{Width: width, Height: height}); err != nil {
+		return nil, errors.Wrap(err, "failed to set window size")
+	}
 
 	return &Browser{chromeDriver, session}, nil
 }

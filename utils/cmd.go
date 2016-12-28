@@ -17,7 +17,7 @@ func ProcessCmdOutput(cmd *exec.Cmd) error {
 
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
-		errors.Wrap(err, "failed to receive stderr pipe")
+		return errors.Wrap(err, "failed to receive stderr pipe")
 	}
 
 	go displayOutput(stdout)
