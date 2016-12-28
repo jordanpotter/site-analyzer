@@ -12,9 +12,8 @@ type Browser struct {
 	session      *webdriver.Session
 }
 
-func New(chromeDriverPath string, displayNum int) (*Browser, error) {
+func New(chromeDriverPath string, width, height, displayNum int) (*Browser, error) {
 	chromeDriver := webdriver.NewChromeDriver(chromeDriverPath)
-
 	if err := chromeDriver.Start(); err != nil {
 		return nil, errors.Wrap(err, "failed to start chromedriver")
 	}
@@ -23,6 +22,14 @@ func New(chromeDriverPath string, displayNum int) (*Browser, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create a new session")
 	}
+
+	window, err := session.WindowHandle()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get window handle")
+	}
+
+	window.SetPosition(webdriver.Position{X: 0, Y: 0})
+	window.SetSize(webdriver.Size{Width: width, Height: height})
 
 	return &Browser{chromeDriver, session}, nil
 }
@@ -47,6 +54,7 @@ func desiredCapabilities(displayNum int) webdriver.Capabilities {
 		},
 		"chromeOptions": map[string]interface{}{
 			"args": []string{
+				"no-sandbox",
 				"start-maximized",
 				fmt.Sprintf("display=:%d", displayNum),
 			},
