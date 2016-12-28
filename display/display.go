@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 
+	"github.com/jordanpotter/site-analyzer/utils"
 	"github.com/pkg/errors"
 )
 
@@ -25,6 +26,10 @@ func New(width, height int) (*Display, error) {
 		fmt.Sprintf(":%d", displayNum),
 		"-screen", "0", fmt.Sprintf("%dx%dx%d", width, height, depth),
 	)
+
+	if err := utils.ProcessCmdOutput(cmd); err != nil {
+		return nil, errors.Wrap(err, "failed to process command output")
+	}
 
 	if err := cmd.Start(); err != nil {
 		return nil, errors.Wrap(err, "failed to start process")

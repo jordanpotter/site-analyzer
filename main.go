@@ -23,7 +23,7 @@ func init() {
 	flag.StringVar(&url, "url", "", "url of the website")
 	flag.IntVar(&width, "width", 1600, "width of the captured video")
 	flag.IntVar(&height, "height", 1200, "height of the captured video")
-	flag.IntVar(&fps, "fps", 20, "fps of the captured video")
+	flag.IntVar(&fps, "fps", 30, "fps of the captured video")
 	flag.StringVar(&videoDir, "videodir", ".", "directory to save the captured video")
 	flag.StringVar(&chromeDriverPath, "chromedriver", "/usr/bin/chromedriver", "path to chromedriver binary")
 	flag.Parse()
@@ -43,14 +43,14 @@ func main() {
 
 	log.Println("Opening browser...")
 
-	b, err := browser.New(chromeDriverPath, d.Num)
+	b, err := browser.New(chromeDriverPath, width, height, d.Num)
 	if err != nil {
 		log.Fatalf("Unexpected error while creating browser: %v", err)
 	}
 
 	log.Println("Capturing video...")
 
-	capture, err := video.StartCapture(d.Num, width, height, fps, videoDir)
+	capture, err := video.StartCapture(d.Num, width, height, fps)
 	if err != nil {
 		log.Fatalf("Unexpected error while starting video capture: %v", err)
 	}
@@ -80,6 +80,12 @@ func main() {
 
 	if err = d.Kill(); err != nil {
 		log.Fatalf("Unexpected error while killing display: %v", err)
+	}
+
+	log.Println("Outputting video capture...")
+
+	if err = capture.Output(videoDir); err != nil {
+		log.Fatalf("Unexpected error while outputting capture: %v", err)
 	}
 
 	log.Printf("Page took %f seconds to load", analysis.PageLoadTime.Seconds())
