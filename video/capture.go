@@ -30,20 +30,8 @@ func StartCapture(displayNum, width, height, fps int) (*Capture, error) {
 	}
 
 	path := filepath.Join(dir, captureName)
-	cmd := exec.Command("ffmpeg",
-		"-probesize", "20M", // Analyze 20MB to retrieve stream information
-		"-video_size", fmt.Sprintf("%dx%d", width, height), // Video dimensions
-		"-framerate", strconv.Itoa(fps), // Framerate
-		"-f", "x11grab", // Process input from X11
-		"-draw_mouse", "0", // Hide mouse
-		"-i", fmt.Sprintf(":%d.0+nomouse", displayNum), // Display to capture
-		"-c:v", "libx264", // Video codec
-		"-preset", "ultrafast", "-crf", "0", // Video quality
-		"-pix_fmt", "yuv420p", // Require yuva420p pixel format
-		"-an",                  // Disable audio
-		"-loglevel", "warning", // Log level
-		path,
-	)
+	args := captureArgs(displayNum, width, height, fps, path)
+	cmd := exec.Command("ffmpeg", args...)
 
 	if err := utils.ProcessCmdOutput(cmd); err != nil {
 		return nil, errors.Wrap(err, "failed to process command output")
@@ -63,14 +51,8 @@ func (c *Capture) Stop() error {
 
 func (c *Capture) Output(dir string) error {
 	path := filepath.Join(dir, videoName)
-	cmd := exec.Command("ffmpeg",
-		"-i", c.capturePath, // Input file
-		"-c:v", "libx264", // Video codec
-		"-preset", "veryslow", "-crf", strconv.Itoa(videoQuality), // Video quality
-		"-an",                  // Disable audio
-		"-loglevel", "warning", // Log level
-		path,
-	)
+	args := outputArgs(c.capturePath, path)
+	cmd := exec.Command("ffmpeg", args...)
 
 	if err := utils.ProcessCmdOutput(cmd); err != nil {
 		return errors.Wrap(err, "failed to process command output")
@@ -78,4 +60,54 @@ func (c *Capture) Output(dir string) error {
 
 	err := cmd.Run()
 	return errors.Wrap(err, "failed to run process")
+}
+
+func captureArgs(displayNum, width, height, fps int, dst string) []string {
+	// WARNING: the order of arguments is very delicate
+	var args []string
+
+	// Analyze 20MB to retrieve stream information
+	args = append(args, "-probesize", "20M")
+
+	// Source dimensions and framerate
+	args = append(args, "-video_size", fmt.Sprintf("%dx%d", width, height), "-framerate", strconv.Itoa(fps))
+
+	// Source from X11, hide mouse
+	args = append(args, "-f", "x11grab", "-draw_mouse", "0", "-i", fmt.Sprintf(":%d.0", displayNum))
+
+	// Output codec with parameters
+	args = append(args, "-c:v", "libx264", "-preset", "ultrafast", "-crf", "0", "-pix_fmt", "yuv420p")
+
+	// Disable audio
+	args = append(args, "-an")
+
+	// Log level
+	args = append(args, "-loglevel", "warning")
+
+	// Destination
+	args = append(args, dst)
+
+	return args
+}
+
+func outputArgs(src, dst string) []string {
+	// WARNING: the order of arguments is very delicate
+	var args []string
+
+	// Source
+	args = append(args, "-i", src)
+
+	// Output codec with parameters
+	args = append(args, "-c:v", "libx264", "-preset", "slow", "-crf", strconv.Itoa(videoQuality))
+
+	// Disable audio
+	args = append(args, "-an")
+
+	// Log level
+	args = append(args, "-loglevel", "warning")
+
+	// Destination
+	args = append(args, dst)
+
+	return args
 }
