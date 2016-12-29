@@ -18,12 +18,12 @@ ENV GOPATH /go
 ADD . /go/src/github.com/jordanpotter/site-analyzer
 RUN go install github.com/jordanpotter/site-analyzer
 
+# Create X11 socket directory
+RUN mkdir /tmp/.X11-unix && chmod 1777 /tmp/.X11-unix
+
 # Create mount point to access data
 RUN mkdir /data && chmod 777 /data
 VOLUME ["/data"]
-
-# Create X11 socket directory
-RUN mkdir /tmp/.X11-unix && chmod 1777 /tmp/.X11-unix
 
 # Run commands as non-root user
 RUN useradd -m -s /bin/bash docker

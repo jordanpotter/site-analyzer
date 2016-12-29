@@ -12,14 +12,11 @@ type Analysis struct {
 	PerformanceLog []PerformanceLogEntry
 }
 
-func (b *Browser) Analyze(url string, postPageLoadSleep time.Duration) (*Analysis, error) {
-	start := time.Now()
-
-	if err := b.session.Url(url); err != nil {
-		return nil, errors.Wrapf(err, "failed to navigate to %q", url)
+func (b *Browser) Analyze(url string, loadedSpec *LoadedSpec, postPageLoadSleep time.Duration) (*Analysis, error) {
+	pageLoadTime, err := b.load(url, loadedSpec)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to load %q", url)
 	}
-
-	pageLoadTime := time.Since(start)
 
 	time.Sleep(postPageLoadSleep)
 

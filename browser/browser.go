@@ -7,6 +7,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	asyncScriptTimeoutMs = 30000
+)
+
 type Browser struct {
 	chromeDriver *webdriver.ChromeDriver
 	session      *webdriver.Session
@@ -21,6 +25,10 @@ func New(chromeDriverPath string, width, height, displayNum int) (*Browser, erro
 	session, err := chromeDriver.NewSession(desiredCapabilities(displayNum), requiredCapabilities())
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create a new session")
+	}
+
+	if err = session.SetTimeoutsAsyncScript(asyncScriptTimeoutMs); err != nil {
+		return nil, errors.Wrap(err, "failed to set async script timeout")
 	}
 
 	window, err := session.WindowHandle()
@@ -53,6 +61,7 @@ func (b *Browser) Kill() error {
 
 func desiredCapabilities(displayNum int) webdriver.Capabilities {
 	return webdriver.Capabilities{
+		"pageLoadStrategy": "none",
 		"loggingPrefs": map[string]interface{}{
 			consoleLogName:     webdriver.LogAll,
 			performanceLogName: webdriver.LogAll,

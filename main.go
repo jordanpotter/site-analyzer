@@ -53,7 +53,7 @@ func main() {
 	}
 
 	log.Printf("Analyzing %q...", url)
-	analysis, err := b.Analyze(url, 1*time.Second)
+	analysis, err := b.Analyze(url, &browser.LoadedSpec{Operand: "and", Elements: []string{".thing"}}, 1*time.Second)
 	if err != nil {
 		log.Fatalf("Unexpected error while analyzing %q: %v", url, err)
 	}
