@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
 	"time"
@@ -35,9 +36,18 @@ func init() {
 func main() {
 	verifyFlags()
 
-	analysis, err := analyzeAndCapture()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	log.Printf("Analyzing %q...", url)
+	analysis, capture, err := analyzeAndCapture(ctx)
 	if err != nil {
 		log.Fatalf("Unexpected error: %v", err)
+	}
+
+	log.Println("Outputting video...")
+	if err = capture.Output(videoDir); err != nil {
+		log.Fatalf("Unexpected error while outputting video: %v", err)
 	}
 
 	log.Printf("Page took %f seconds to load", analysis.PageLoadTime.Seconds())
@@ -45,45 +55,31 @@ func main() {
 	log.Printf("Received %d performance log entries", len(analysis.PerformanceLog))
 }
 
-func analyzeAndCapture() (*browser.Analysis, error) {
-	log.Println("Creating display...")
+func analyzeAndCapture(ctx context.Context) (*browser.Analysis, *video.Capture, error) {
 	d, err := display.New(width, height)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create display")
+		return nil, nil, errors.Wrap(err, "failed to create display")
 	}
 	defer utils.MustFunc(d.Close)
 
-	log.Println("Creating Chrome browser...")
 	b, err := browser.NewChrome(chromeDriverPath, width, height, d.Num)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create browser")
+		return nil, nil, errors.Wrap(err, "failed to create browser")
 	}
 	defer utils.MustFunc(b.Close)
 
-	log.Println("Starting video capture...")
-	c, err := video.StartCapture(d.Num, width, height, fps)
+	capture, err := video.StartCapture(d.Num, width, height, fps)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to start video capture")
+		return nil, nil, errors.Wrap(err, "failed to start video capture")
 	}
-	defer utils.MustFunc(c.Stop)
+	defer utils.MustFunc(capture.Stop)
 
-	log.Printf("Analyzing %q...", url)
-	analysis, err := b.Analyze(url, &browser.LoadedSpec{Operand: "and", Elements: []string{".thing"}}, 2*time.Second)
+	analysis, err := b.Analyze(ctx, url, &browser.LoadedSpec{Operand: "and", Elements: []string{".column"}}, 10*time.Second)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to analyze %q", url)
+		return nil, nil, errors.Wrapf(err, "failed to analyze %q", url)
 	}
 
-	log.Println("Stopping video capture...")
-	if err = c.Stop(); err != nil {
-		return nil, errors.Wrap(err, "failed to stop video capture")
-	}
-
-	log.Println("Outputting video...")
-	if err = c.Output(videoDir); err != nil {
-		return nil, errors.Wrap(err, "failed to output video capture")
-	}
-
-	return analysis, nil
+	return analysis, capture, nil
 }
 
 func verifyFlags() {
