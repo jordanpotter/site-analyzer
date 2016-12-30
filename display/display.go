@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"os"
 	"os/exec"
+	"time"
 
 	"github.com/jordanpotter/site-analyzer/utils"
 	"github.com/pkg/errors"
@@ -13,6 +14,7 @@ import (
 const (
 	depth         = 24
 	maxDisplayNum = 50000
+	startDelay    = 100 * time.Millisecond
 )
 
 type Display struct {
@@ -35,10 +37,11 @@ func New(width, height int) (*Display, error) {
 		return nil, errors.Wrap(err, "failed to start process")
 	}
 
+	time.Sleep(startDelay)
 	return &Display{displayNum, cmd}, nil
 }
 
-func (d *Display) Kill() error {
+func (d *Display) Close() error {
 	err := d.cmd.Process.Signal(os.Interrupt)
 	return errors.Wrap(err, "failed to interrupt process")
 }

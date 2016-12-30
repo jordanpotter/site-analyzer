@@ -5,8 +5,11 @@ import (
 	"log"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/jordanpotter/site-analyzer/browser"
 	"github.com/jordanpotter/site-analyzer/display"
+	"github.com/jordanpotter/site-analyzer/utils"
 	"github.com/jordanpotter/site-analyzer/video"
 )
 
@@ -32,57 +35,55 @@ func init() {
 func main() {
 	verifyFlags()
 
-	log.Println("Creating display...")
-	d, err := display.New(width, height)
+	analysis, err := analyzeAndCapture()
 	if err != nil {
-		log.Fatalf("Unexpected error while creating display: %v", err)
-	}
-
-	time.Sleep(100 * time.Millisecond)
-
-	log.Println("Opening browser...")
-	b, err := browser.New(chromeDriverPath, width, height, d.Num)
-	if err != nil {
-		log.Fatalf("Unexpected error while creating browser: %v", err)
-	}
-
-	log.Println("Capturing video...")
-	capture, err := video.StartCapture(d.Num, width, height, fps)
-	if err != nil {
-		log.Fatalf("Unexpected error while starting video capture: %v", err)
-	}
-
-	log.Printf("Analyzing %q...", url)
-	analysis, err := b.Analyze(url, &browser.LoadedSpec{Operand: "and", Elements: []string{".thing"}}, 1*time.Second)
-	if err != nil {
-		log.Fatalf("Unexpected error while analyzing %q: %v", url, err)
-	}
-
-	log.Println("Stopping video capture...")
-	if err = capture.Stop(); err != nil {
-		log.Fatalf("Unexpected error while stopping video capture: %v", err)
-	}
-
-	time.Sleep(100 * time.Millisecond)
-
-	log.Println("Closing browser...")
-	if err = b.Kill(); err != nil {
-		log.Fatalf("Unexpected error while killing browser: %v", err)
-	}
-
-	log.Println("Closing display...")
-	if err = d.Kill(); err != nil {
-		log.Fatalf("Unexpected error while killing display: %v", err)
-	}
-
-	log.Println("Outputting video capture...")
-	if err = capture.Output(videoDir); err != nil {
-		log.Fatalf("Unexpected error while outputting capture: %v", err)
+		log.Fatalf("Unexpected error: %v", err)
 	}
 
 	log.Printf("Page took %f seconds to load", analysis.PageLoadTime.Seconds())
 	log.Printf("Received %d console log entries", len(analysis.ConsoleLog))
 	log.Printf("Received %d performance log entries", len(analysis.PerformanceLog))
+}
+
+func analyzeAndCapture() (*browser.Analysis, error) {
+	log.Println("Creating display...")
+	d, err := display.New(width, height)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create display")
+	}
+	defer utils.MustFunc(d.Close)
+
+	log.Println("Creating Chrome browser...")
+	b, err := browser.NewChrome(chromeDriverPath, width, height, d.Num)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create browser")
+	}
+	defer utils.MustFunc(b.Close)
+
+	log.Println("Starting video capture...")
+	c, err := video.StartCapture(d.Num, width, height, fps)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to start video capture")
+	}
+	defer utils.MustFunc(c.Stop)
+
+	log.Printf("Analyzing %q...", url)
+	analysis, err := b.Analyze(url, &browser.LoadedSpec{Operand: "and", Elements: []string{".thing"}}, 2*time.Second)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to analyze %q", url)
+	}
+
+	log.Println("Stopping video capture...")
+	if err = c.Stop(); err != nil {
+		return nil, errors.Wrap(err, "failed to stop video capture")
+	}
+
+	log.Println("Outputting video...")
+	if err = c.Output(videoDir); err != nil {
+		return nil, errors.Wrap(err, "failed to output video capture")
+	}
+
+	return analysis, nil
 }
 
 func verifyFlags() {

@@ -8,15 +8,15 @@ import (
 )
 
 const (
-	asyncScriptTimeoutMs = 30000
+	asyncScriptTimeoutMs = 60000
 )
 
 type Browser struct {
-	chromeDriver *webdriver.ChromeDriver
-	session      *webdriver.Session
+	webDriver webdriver.WebDriver
+	session   *webdriver.Session
 }
 
-func New(chromeDriverPath string, width, height, displayNum int) (*Browser, error) {
+func NewChrome(chromeDriverPath string, width, height, displayNum int) (*Browser, error) {
 	chromeDriver := webdriver.NewChromeDriver(chromeDriverPath)
 	if err := chromeDriver.Start(); err != nil {
 		return nil, errors.Wrap(err, "failed to start chromedriver")
@@ -47,12 +47,12 @@ func New(chromeDriverPath string, width, height, displayNum int) (*Browser, erro
 	return &Browser{chromeDriver, session}, nil
 }
 
-func (b *Browser) Kill() error {
+func (b *Browser) Close() error {
 	if err := b.session.Delete(); err != nil {
 		return errors.Wrap(err, "failed to delete b.session")
 	}
 
-	if err := b.chromeDriver.Stop(); err != nil {
+	if err := b.webDriver.Stop(); err != nil {
 		return errors.Wrap(err, "failed to stop chromedriver")
 	}
 

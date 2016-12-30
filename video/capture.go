@@ -7,15 +7,17 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/jordanpotter/site-analyzer/utils"
 	"github.com/pkg/errors"
 )
 
 const (
-	captureName  = "capture.mp4"
-	videoName    = "video.mp4"
-	videoQuality = 18
+	captureName      = "capture.mp4"
+	captureStopDelay = 100 * time.Millisecond
+	videoName        = "video.mp4"
+	videoQuality     = 18
 )
 
 type Capture struct {
@@ -45,8 +47,12 @@ func StartCapture(displayNum, width, height, fps int) (*Capture, error) {
 }
 
 func (c *Capture) Stop() error {
-	err := c.cmd.Process.Signal(os.Interrupt)
-	return errors.Wrap(err, "failed to interrupt process")
+	if err := c.cmd.Process.Signal(os.Interrupt); err != nil {
+		return errors.Wrap(err, "failed to interrupt process")
+	}
+
+	time.Sleep(captureStopDelay)
+	return nil
 }
 
 func (c *Capture) Output(dir string) error {
