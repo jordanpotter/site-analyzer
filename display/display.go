@@ -1,6 +1,7 @@
 package display
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"os"
@@ -22,12 +23,10 @@ type Display struct {
 	cmd *exec.Cmd
 }
 
-func New(width, height int) (*Display, error) {
+func New(ctx context.Context, width, height int) (*Display, error) {
 	displayNum := randomDisplayNum()
-	cmd := exec.Command("Xvfb",
-		fmt.Sprintf(":%d", displayNum),
-		"-screen", "0", fmt.Sprintf("%dx%dx%d", width, height, depth),
-	)
+	args := displayArgs(displayNum, width, height)
+	cmd := exec.CommandContext(ctx, "Xvfb", args...)
 
 	if err := utils.ProcessCmdOutput(cmd); err != nil {
 		return nil, errors.Wrap(err, "failed to process command output")
@@ -44,6 +43,18 @@ func New(width, height int) (*Display, error) {
 func (d *Display) Close() error {
 	err := d.cmd.Process.Signal(os.Interrupt)
 	return errors.Wrap(err, "failed to interrupt process")
+}
+
+func displayArgs(displayNum, width, height int) []string {
+	var args []string
+
+	// Display number
+	args = append(args, fmt.Sprintf(":%d", displayNum))
+
+	// Screen settings
+	args = append(args, "-screen", "0", fmt.Sprintf("%dx%dx%d", width, height, depth))
+
+	return args
 }
 
 func randomDisplayNum() int {

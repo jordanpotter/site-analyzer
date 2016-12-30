@@ -46,17 +46,19 @@ func main() {
 	}
 
 	log.Println("Outputting video...")
-	if err = capture.Output(videoDir); err != nil {
+	capturePath, err := capture.Output(ctx, videoDir)
+	if err != nil {
 		log.Fatalf("Unexpected error while outputting video: %v", err)
 	}
 
 	log.Printf("Page took %f seconds to load", analysis.PageLoadTime.Seconds())
 	log.Printf("Received %d console log entries", len(analysis.ConsoleLog))
 	log.Printf("Received %d performance log entries", len(analysis.PerformanceLog))
+	log.Printf("Video saved to %s", capturePath)
 }
 
 func analyzeAndCapture(ctx context.Context) (*browser.Analysis, *video.Capture, error) {
-	d, err := display.New(width, height)
+	d, err := display.New(ctx, width, height)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "failed to create display")
 	}
@@ -68,7 +70,7 @@ func analyzeAndCapture(ctx context.Context) (*browser.Analysis, *video.Capture, 
 	}
 	defer utils.MustFunc(b.Close)
 
-	capture, err := video.StartCapture(d.Num, width, height, fps)
+	capture, err := video.StartCapture(ctx, d.Num, width, height, fps)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "failed to start video capture")
 	}

@@ -1,6 +1,7 @@
 package video
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -25,7 +26,7 @@ type Capture struct {
 	capturePath string
 }
 
-func StartCapture(displayNum, width, height, fps int) (*Capture, error) {
+func StartCapture(ctx context.Context, displayNum, width, height, fps int) (*Capture, error) {
 	dir, err := ioutil.TempDir("", "capture")
 	if err != nil {
 		return nil, err
@@ -33,7 +34,7 @@ func StartCapture(displayNum, width, height, fps int) (*Capture, error) {
 
 	path := filepath.Join(dir, captureName)
 	args := captureArgs(displayNum, width, height, fps, path)
-	cmd := exec.Command("ffmpeg", args...)
+	cmd := exec.CommandContext(ctx, "ffmpeg", args...)
 
 	if err := utils.ProcessCmdOutput(cmd); err != nil {
 		return nil, errors.Wrap(err, "failed to process command output")
@@ -55,17 +56,17 @@ func (c *Capture) Stop() error {
 	return nil
 }
 
-func (c *Capture) Output(dir string) error {
+func (c *Capture) Output(ctx context.Context, dir string) (string, error) {
 	path := filepath.Join(dir, videoName)
 	args := outputArgs(c.capturePath, path)
-	cmd := exec.Command("ffmpeg", args...)
+	cmd := exec.CommandContext(ctx, "ffmpeg", args...)
 
 	if err := utils.ProcessCmdOutput(cmd); err != nil {
-		return errors.Wrap(err, "failed to process command output")
+		return "", errors.Wrap(err, "failed to process command output")
 	}
 
 	err := cmd.Run()
-	return errors.Wrap(err, "failed to run process")
+	return path, errors.Wrap(err, "failed to run process")
 }
 
 func captureArgs(displayNum, width, height, fps int, dst string) []string {
