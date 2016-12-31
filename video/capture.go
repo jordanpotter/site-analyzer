@@ -19,6 +19,7 @@ const (
 	captureStopDelay = 100 * time.Millisecond
 	videoName        = "video.mp4"
 	videoQuality     = 18
+	thumbnailName    = "thumbnail.png"
 )
 
 type Capture struct {
@@ -56,9 +57,22 @@ func (c *Capture) Stop() error {
 	return nil
 }
 
-func (c *Capture) Output(ctx context.Context, dir string) (string, error) {
+func (c *Capture) Video(ctx context.Context, dir string) (string, error) {
 	path := filepath.Join(dir, videoName)
-	args := outputArgs(c.capturePath, path)
+	args := videoArgs(c.capturePath, path)
+	cmd := exec.CommandContext(ctx, "ffmpeg", args...)
+
+	if err := utils.ProcessCmdOutput(cmd); err != nil {
+		return "", errors.Wrap(err, "failed to process command output")
+	}
+
+	err := cmd.Run()
+	return path, errors.Wrap(err, "failed to run process")
+}
+
+func (c *Capture) Thumbnail(ctx context.Context, loc time.Duration, dir string) (string, error) {
+	path := filepath.Join(dir, thumbnailName)
+	args := thumbnailArgs(loc, c.capturePath, path)
 	cmd := exec.CommandContext(ctx, "ffmpeg", args...)
 
 	if err := utils.ProcessCmdOutput(cmd); err != nil {
@@ -97,7 +111,7 @@ func captureArgs(displayNum, width, height, fps int, dst string) []string {
 	return args
 }
 
-func outputArgs(src, dst string) []string {
+func videoArgs(src, dst string) []string {
 	// WARNING: the order of arguments is very delicate
 	var args []string
 
@@ -117,4 +131,27 @@ func outputArgs(src, dst string) []string {
 	args = append(args, dst)
 
 	return args
+}
+
+func thumbnailArgs(loc time.Duration, src, dst string) []string {
+	// WARNING: the order of arguments is very delicate
+	var args []string
+
+	// Source
+	args = append(args, "-i", src)
+
+	// Seek to location
+	args = append(args, "-ss", strconv.FormatFloat(loc.Seconds(), 'f', -1, 64))
+
+	// Only capture one image
+	args = append(args, "-vframes", "1")
+
+	// Log level
+	args = append(args, "-loglevel", "warning")
+
+	// Destination
+	args = append(args, dst)
+
+	return args
+
 }

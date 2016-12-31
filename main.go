@@ -19,8 +19,9 @@ var (
 	width            int
 	height           int
 	fps              int
-	videoDir         string
+	dataDir          string
 	chromeDriverPath string
+	deadline         string
 )
 
 func init() {
@@ -28,7 +29,8 @@ func init() {
 	flag.IntVar(&width, "width", 1600, "width of the captured video")
 	flag.IntVar(&height, "height", 1200, "height of the captured video")
 	flag.IntVar(&fps, "fps", 30, "fps of the captured video")
-	flag.StringVar(&videoDir, "videodir", ".", "directory to save the captured video")
+	flag.StringVar(&dataDir, "data", ".", "directory to save output")
+	flag.StringVar(&deadline, "deadline", "30s", "cancel if have not completed within this duration")
 	flag.StringVar(&chromeDriverPath, "chromedriver", "/usr/bin/chromedriver", "path to chromedriver binary")
 	flag.Parse()
 }
@@ -36,7 +38,12 @@ func init() {
 func main() {
 	verifyFlags()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	timeout, err := time.ParseDuration(deadline)
+	if err != nil {
+		log.Fatalf("Unexpected error while parsing deadline: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	log.Printf("Analyzing %q...", url)
@@ -46,15 +53,22 @@ func main() {
 	}
 
 	log.Println("Outputting video...")
-	capturePath, err := capture.Output(ctx, videoDir)
+	videoPath, err := capture.Video(ctx, dataDir)
 	if err != nil {
 		log.Fatalf("Unexpected error while outputting video: %v", err)
+	}
+
+	log.Println("Outputting thumbnail...")
+	thumbnailPath, err := capture.Thumbnail(ctx, analysis.PageLoadTime, dataDir)
+	if err != nil {
+		log.Fatalf("Unexpected error while outputting thumbnail: %v", err)
 	}
 
 	log.Printf("Page took %f seconds to load", analysis.PageLoadTime.Seconds())
 	log.Printf("Received %d console log entries", len(analysis.ConsoleLog))
 	log.Printf("Received %d performance log entries", len(analysis.PerformanceLog))
-	log.Printf("Video saved to %s", capturePath)
+	log.Printf("Video saved to %s", videoPath)
+	log.Printf("Thumbnail saved to %s", thumbnailPath)
 }
 
 func analyzeAndCapture(ctx context.Context) (*browser.Analysis, *video.Capture, error) {
@@ -64,7 +78,7 @@ func analyzeAndCapture(ctx context.Context) (*browser.Analysis, *video.Capture, 
 	}
 	defer utils.MustFunc(d.Close)
 
-	b, err := browser.NewChrome(chromeDriverPath, width, height, d.Num)
+	b, err := browser.NewChrome(ctx, chromeDriverPath, width, height, d.Num)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "failed to create browser")
 	}
@@ -93,8 +107,8 @@ func verifyFlags() {
 		log.Fatalf("Invalid video height %d", height)
 	} else if fps <= 0 {
 		log.Fatalf("Invalid video fps %d", fps)
-	} else if videoDir == "" {
-		log.Fatalln("Must specify video directory")
+	} else if dataDir == "" {
+		log.Fatalln("Must specify data directory")
 	} else if chromeDriverPath == "" {
 		log.Fatalln("Must specify chromedriver path")
 	}

@@ -1,16 +1,25 @@
 package browser
 
 import (
+	"context"
 	"fmt"
+	"time"
 
 	"github.com/fedesog/webdriver"
 	"github.com/pkg/errors"
 )
 
-func NewChrome(chromeDriverPath string, width, height, displayNum int) (*Browser, error) {
+func NewChrome(ctx context.Context, chromeDriverPath string, width, height, displayNum int) (*Browser, error) {
 	chromeDriver := webdriver.NewChromeDriver(chromeDriverPath)
 	if err := chromeDriver.Start(); err != nil {
 		return nil, errors.Wrap(err, "failed to start chromedriver")
+	}
+
+	if deadline, ok := ctx.Deadline(); ok {
+		if deadline.Before(time.Now()) {
+			return nil, errors.New("context deadline exceeded")
+		}
+		chromeDriver.StartTimeout = deadline.Sub(time.Now())
 	}
 
 	session, err := chromeDriver.NewSession(chromeDesiredCapabilities(displayNum), chromeRequiredCapabilities())

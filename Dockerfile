@@ -31,4 +31,4 @@ USER docker
 WORKDIR /home/docker
 
 # Run site-analyzer
-ENTRYPOINT ["site-analyzer", "-videodir", "/data", "-chromedriver", "/usr/lib/chromium-browser/chromedriver"]
+ENTRYPOINT ["site-analyzer", "-data", "/data", "-chromedriver", "/usr/lib/chromium-browser/chromedriver"]
