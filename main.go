@@ -78,7 +78,7 @@ func analyzeAndCapture(ctx context.Context) (*browser.Analysis, *video.Capture, 
 	}
 	defer utils.MustFunc(d.Close)
 
-	b, err := browser.NewChrome(ctx, chromeDriverPath, width, height, d.Num)
+	b, err := browser.NewChrome(ctx, chromeDriverPath, width, height, d.Num, dataDir)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "failed to create browser")
 	}

@@ -3,23 +3,32 @@ package browser
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"time"
 
 	"github.com/fedesog/webdriver"
 	"github.com/pkg/errors"
 )
 
-func NewChrome(ctx context.Context, chromeDriverPath string, width, height, displayNum int) (*Browser, error) {
+const (
+	chromedriverLogName       = "chromedriver.log"
+	chromedriverOutputLogName = "chromedriver_output.log"
+)
+
+func NewChrome(ctx context.Context, chromeDriverPath string, width, height, displayNum int, logsDir string) (*Browser, error) {
 	chromeDriver := webdriver.NewChromeDriver(chromeDriverPath)
-	if err := chromeDriver.Start(); err != nil {
-		return nil, errors.Wrap(err, "failed to start chromedriver")
-	}
+	chromeDriver.LogPath = filepath.Join(logsDir, chromedriverLogName)
+	chromeDriver.LogFile = filepath.Join(logsDir, chromedriverOutputLogName)
 
 	if deadline, ok := ctx.Deadline(); ok {
 		if deadline.Before(time.Now()) {
 			return nil, errors.New("context deadline exceeded")
 		}
 		chromeDriver.StartTimeout = deadline.Sub(time.Now())
+	}
+
+	if err := chromeDriver.Start(); err != nil {
+		return nil, errors.Wrap(err, "failed to start chromedriver")
 	}
 
 	session, err := chromeDriver.NewSession(chromeDesiredCapabilities(displayNum), chromeRequiredCapabilities())
