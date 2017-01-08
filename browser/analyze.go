@@ -9,25 +9,23 @@ import (
 
 type Analysis struct {
 	PageLoadTime   time.Duration
-	ConsoleLog     []ConsoleLogEntry
+	ConsoleLog     *ConsoleLog
 	PerformanceLog []PerformanceLogEntry
 }
 
 func (b *Browser) Analyze(ctx context.Context, url string, loadedSpec *LoadedSpec, postPageLoadSleep time.Duration) (*Analysis, error) {
-	type result struct {
-		analysis *Analysis
-		err      error
-	}
+	var analysis *Analysis
+	var err error
 
-	c := make(chan result, 1)
+	c := make(chan bool, 1)
 	go func() {
-		analysis, err := b.doAnalysis(url, loadedSpec, postPageLoadSleep)
-		c <- result{analysis, err}
+		analysis, err = b.doAnalysis(url, loadedSpec, postPageLoadSleep)
+		c <- true
 	}()
 
 	select {
-	case r := <-c:
-		return r.analysis, r.err
+	case <-c:
+		return analysis, err
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}

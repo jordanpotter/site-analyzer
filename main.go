@@ -52,45 +52,56 @@ func main() {
 		log.Fatalf("Unexpected error: %v", err)
 	}
 
-	log.Println("Outputting video...")
-	videoPath, err := capture.Video(ctx, dataDir)
+	log.Printf("Saving console logs...")
+	consoleLogPath, err := analysis.ConsoleLog.Save(ctx, dataDir)
 	if err != nil {
-		log.Fatalf("Unexpected error while outputting video: %v", err)
+		log.Fatalf("Unexpected error: %v", err)
 	}
 
-	log.Println("Outputting thumbnail...")
-	thumbnailPath, err := capture.Thumbnail(ctx, analysis.PageLoadTime, dataDir)
+	log.Println("Saving video...")
+	videoPath, err := capture.SaveVideo(ctx, dataDir)
 	if err != nil {
-		log.Fatalf("Unexpected error while outputting thumbnail: %v", err)
+		log.Fatalf("Unexpected error while saving video: %v", err)
+	}
+
+	log.Println("Saving thumbnail...")
+	thumbnailPath, err := capture.SaveThumbnail(ctx, analysis.PageLoadTime, dataDir)
+	if err != nil {
+		log.Fatalf("Unexpected error while saving thumbnail: %v", err)
 	}
 
 	log.Printf("Page took %f seconds to load", analysis.PageLoadTime.Seconds())
-	log.Printf("Received %d console log entries", len(analysis.ConsoleLog))
+	log.Printf("Received %d console log entries", len(analysis.ConsoleLog.Entries))
 	log.Printf("Received %d performance log entries", len(analysis.PerformanceLog))
+	log.Printf("Console log saved to %s", consoleLogPath)
 	log.Printf("Video saved to %s", videoPath)
 	log.Printf("Thumbnail saved to %s", thumbnailPath)
 }
 
 func analyzeAndCapture(ctx context.Context) (*browser.Analysis, *video.Capture, error) {
+	log.Println("Creating the display...")
 	d, err := display.New(ctx, width, height)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "failed to create display")
 	}
 	defer utils.MustFunc(d.Close)
 
+	log.Println("Opening Chrome...")
 	b, err := browser.NewChrome(ctx, chromeDriverPath, width, height, d.Num, dataDir)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "failed to create browser")
 	}
 	defer utils.MustFunc(b.Close)
 
+	log.Println("Starting video capture...")
 	capture, err := video.StartCapture(ctx, d.Num, width, height, fps)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "failed to start video capture")
 	}
 	defer utils.MustFunc(capture.Stop)
 
-	analysis, err := b.Analyze(ctx, url, &browser.LoadedSpec{Operand: "and", Elements: []string{".column"}}, 10*time.Second)
+	log.Println("Performing analysis...")
+	analysis, err := b.Analyze(ctx, url, &browser.LoadedSpec{}, 10*time.Second)
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "failed to analyze %q", url)
 	}

@@ -15,11 +15,11 @@ import (
 )
 
 const (
-	captureName      = "capture.mp4"
-	captureStopDelay = 100 * time.Millisecond
-	videoName        = "video.mp4"
-	videoQuality     = 18
-	thumbnailName    = "thumbnail.png"
+	captureName       = "capture.mp4"
+	captureStopDelay  = 100 * time.Millisecond
+	videoFilename     = "video.mp4"
+	videoQuality      = 18
+	thumbnailFilename = "thumbnail.png"
 )
 
 type Capture struct {
@@ -57,8 +57,8 @@ func (c *Capture) Stop() error {
 	return nil
 }
 
-func (c *Capture) Video(ctx context.Context, dir string) (string, error) {
-	path := filepath.Join(dir, videoName)
+func (c *Capture) SaveVideo(ctx context.Context, dir string) (string, error) {
+	path := filepath.Join(dir, videoFilename)
 	args := videoArgs(c.capturePath, path)
 	cmd := exec.CommandContext(ctx, "ffmpeg", args...)
 
@@ -70,8 +70,8 @@ func (c *Capture) Video(ctx context.Context, dir string) (string, error) {
 	return path, errors.Wrap(err, "failed to run process")
 }
 
-func (c *Capture) Thumbnail(ctx context.Context, loc time.Duration, dir string) (string, error) {
-	path := filepath.Join(dir, thumbnailName)
+func (c *Capture) SaveThumbnail(ctx context.Context, loc time.Duration, dir string) (string, error) {
+	path := filepath.Join(dir, thumbnailFilename)
 	args := thumbnailArgs(loc, c.capturePath, path)
 	cmd := exec.CommandContext(ctx, "ffmpeg", args...)
 
