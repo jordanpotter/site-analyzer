@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y \
 	xvfb
 
 # Install Go
-ENV GO_VERSION 1.7.3
+ENV GO_VERSION 1.8.1
 RUN curl -fsSL "https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz" | tar -xzC /usr/local
 ENV PATH /go/bin:/usr/local/go/bin:$PATH
 ENV GOPATH /go
