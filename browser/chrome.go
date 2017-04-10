@@ -70,6 +70,7 @@ func chromeDesiredCapabilities(displayNum int) webdriver.Capabilities {
 		"chromeOptions": map[string]interface{}{
 			"args": []string{
 				"no-sandbox",
+				"disable-infobars",
 				"start-maximized",
 				fmt.Sprintf("display=:%d", displayNum),
 			},
