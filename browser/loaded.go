@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -14,32 +15,31 @@ import (
 const isLoadedTemplate = `
 var cb = arguments[arguments.length - 1];
 
+function done() {
+	cb(window.performance.now());
+}
+
 {{if .isEmpty -}}
 
 if (document.readyState === 'complete') {
-	cb();
+	done();	
 } else {
-	window.addEventListener('load', function() { cb(); }, {once: true});
+	window.addEventListener('load', done, {once: true});
 }
 
 {{- else -}}
 
 if ({{.isLoadedConditional}}) {
-	cb();
+	done();
 }
 
-var observer = new MutationObserver(function(mutations) {
-	mutations.forEach(function(mutation) {
-		if ({{.isLoadedConditional}}) {
-			observer.disconnect();
-			cb();
-		}
-	});
+var observer = new MutationObserver(function() {
+	if ({{.isLoadedConditional}}) {
+		observer.disconnect();
+		done();
+	}
 });
-
-var target = document;
-var config = {childList: true, subtree: true};
-observer.observe(target, config);
+observer.observe(document, {childList: true, subtree: true});
 
 {{- end }}
 `
@@ -125,8 +125,6 @@ func (spec *LoadedSpec) operandSeparator() (string, error) {
 }
 
 func (b *Browser) load(url string, spec *LoadedSpec) (time.Duration, error) {
-	start := time.Now()
-
 	if err := b.session.Url(url); err != nil {
 		return 0, errors.Wrap(err, "failed to set url")
 	}
@@ -136,6 +134,15 @@ func (b *Browser) load(url string, spec *LoadedSpec) (time.Duration, error) {
 		return 0, errors.Wrap(err, "failed to retrieve script")
 	}
 
-	_, err = b.session.ExecuteScriptAsync(script, []interface{}{})
-	return time.Since(start), errors.Wrap(err, "failed to execute async script")
+	data, err := b.session.ExecuteScriptAsync(script, []interface{}{})
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to execute async script")
+	}
+
+	duration, err := strconv.ParseFloat(string(data), 64)
+	if err != nil {
+		return 0, errors.Wrapf(err, "failed to convert string %q to float", data)
+	}
+
+	return time.Duration(duration) * time.Millisecond, nil
 }

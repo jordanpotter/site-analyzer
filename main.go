@@ -30,7 +30,7 @@ func init() {
 	flag.IntVar(&height, "height", 1200, "height of the captured video")
 	flag.IntVar(&fps, "fps", 30, "fps of the captured video")
 	flag.StringVar(&dataDir, "data", ".", "directory to save output")
-	flag.StringVar(&deadline, "deadline", "30s", "cancel if have not completed within this duration")
+	flag.StringVar(&deadline, "deadline", "60s", "cancel if have not completed within this duration")
 	flag.StringVar(&chromeDriverPath, "chromedriver", "/usr/bin/chromedriver", "path to chromedriver binary")
 	flag.Parse()
 }
