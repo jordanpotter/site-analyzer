@@ -58,6 +58,12 @@ func main() {
 		log.Fatalf("Unexpected error: %v", err)
 	}
 
+	log.Printf("Saving performance logs...")
+	performanceLogPath, err := analysis.PerformanceLog.Save(ctx, dataDir)
+	if err != nil {
+		log.Fatalf("Unexpected error: %v", err)
+	}
+
 	log.Println("Saving video...")
 	videoPath, err := capture.SaveVideo(ctx, dataDir)
 	if err != nil {
@@ -72,8 +78,10 @@ func main() {
 
 	log.Printf("Page took %f seconds to load", analysis.PageLoadTime.Seconds())
 	log.Printf("Received %d console log entries", len(analysis.ConsoleLog.Entries))
-	log.Printf("Received %d performance log entries", len(analysis.PerformanceLog))
+	log.Printf("Received %d performance log entries", len(analysis.PerformanceLog.Entries))
+
 	log.Printf("Console log saved to %s", consoleLogPath)
+	log.Printf("Performance log saved to %s", performanceLogPath)
 	log.Printf("Video saved to %s", videoPath)
 	log.Printf("Thumbnail saved to %s", thumbnailPath)
 }

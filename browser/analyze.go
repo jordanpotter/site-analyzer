@@ -10,7 +10,7 @@ import (
 type Analysis struct {
 	PageLoadTime   time.Duration
 	ConsoleLog     *ConsoleLog
-	PerformanceLog []PerformanceLogEntry
+	PerformanceLog *PerformanceLog
 }
 
 func (b *Browser) Analyze(ctx context.Context, url string, loadedSpec *LoadedSpec, postPageLoadSleep time.Duration) (*Analysis, error) {

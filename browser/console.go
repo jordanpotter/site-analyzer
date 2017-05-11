@@ -36,21 +36,18 @@ func (b *Browser) consoleLog() (*ConsoleLog, error) {
 
 	consoleLogEntries := make([]ConsoleLogEntry, 0, len(logEntries))
 	for _, logEntry := range logEntries {
-		consoleLogEntry, err := consoleLogEntry(logEntry)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to process log entry")
-		}
+		consoleLogEntry := consoleLogEntry(logEntry)
 		consoleLogEntries = append(consoleLogEntries, consoleLogEntry)
 	}
 	return &ConsoleLog{consoleLogEntries}, nil
 }
 
-func consoleLogEntry(logEntry webdriver.LogEntry) (ConsoleLogEntry, error) {
+func consoleLogEntry(logEntry webdriver.LogEntry) ConsoleLogEntry {
 	return ConsoleLogEntry{
 		Level:   logEntry.Level,
 		Message: logEntry.Message,
 		Time:    time.Unix(int64(logEntry.TimeStamp/1000), 0),
-	}, nil
+	}
 }
 
 func (cl *ConsoleLog) Save(ctx context.Context, dir string) (string, error) {
